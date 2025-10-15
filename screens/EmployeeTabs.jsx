@@ -677,6 +677,7 @@ const EmployeeTabs = ({ route }) => {
             ),
             headerTitleAlign: 'center',
             headerRight: renderNotificationIcon,
+     
           }}
         />
         <Tab.Screen

@@ -10560,7 +10560,7 @@ const uploadAndAttachPhoto = async (checkinName, photoUri) => {
         error => reject(error),
         {
           enableHighAccuracy: false,
-          timeout: 3000,
+          timeout: 16000,
           maximumAge: 30000
         }
       );
@@ -10839,7 +10839,7 @@ const uploadAndAttachPhoto = async (checkinName, photoUri) => {
       <View style={styles.infoContainer}>
         {currentStatus === 'IN' && clockInTime ? (
           <>
-            <Text style={styles.timeLabel}>Clock In Time:</Text>
+            <Text style={styles.timeLabel}>Punch In Time:</Text>
             <Text style={styles.timeText}>
               {extractTimeFromDateTime(clockInTime)}
             </Text>
@@ -10852,7 +10852,7 @@ const uploadAndAttachPhoto = async (checkinName, photoUri) => {
           </>
         ) : currentStatus === 'OUT' && clockOutTime ? (
           <>
-            <Text style={styles.timeLabel}>Clock Out Time:</Text>
+            <Text style={styles.timeLabel}>Punch Out Time:</Text>
             <Text style={styles.timeText}>
               {extractTimeFromDateTime(clockOutTime)}
             </Text>
@@ -10889,7 +10889,7 @@ const uploadAndAttachPhoto = async (checkinName, photoUri) => {
             ) : (
               <>
                 <Ionicons name="time-outline" size={28} color="#fff" />
-                <Text style={styles.clockInButtonText}>Clock In</Text>
+                <Text style={styles.clockInButtonText}>Punch In</Text>
               </>
             )}
           </TouchableOpacity>
@@ -10904,7 +10904,7 @@ const uploadAndAttachPhoto = async (checkinName, photoUri) => {
             ) : (
               <>
                 <Ionicons name="exit-outline" size={28} color="#fff" />
-                <Text style={styles.clockOutButtonText}>Clock Out</Text>
+                <Text style={styles.clockOutButtonText}>Punch Out</Text>
               </>
             )}
           </TouchableOpacity>
@@ -11164,3 +11164,1142 @@ const styles = StyleSheet.create({
 
 export default ClockIn;
 
+
+
+
+
+// import React, { useState, useEffect, useRef } from 'react';
+// import {
+//   View,
+//   Text,
+//   TouchableOpacity,
+//   StyleSheet,
+//   Alert,
+//   ActivityIndicator,
+//   Platform,
+//   PermissionsAndroid,
+//   Dimensions,
+//   Image,
+//   ScrollView,SafeAreaView,
+// } from 'react-native';
+// import ImageResizer from 'react-native-image-resizer';
+// import Ionicons from 'react-native-vector-icons/Ionicons';
+// import Geolocation from '@react-native-community/geolocation';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { launchCamera } from 'react-native-image-picker';
+
+// //const ERP_BASE_URL = 'https://erpnextcloud.cbditsolutions.com';
+// //const ERP_BASE_URL = 'https://mpda.in';
+// const LOCATION_CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes cache validity
+// const { width: windowWidth } = Dimensions.get('window');
+
+// const ClockIn = ({ sid, employeeData,erpUrl }) => {
+//   const [clockInTime, setClockInTime] = useState(null);
+//   const [clockOutTime, setClockOutTime] = useState(null);
+//   const [clockInSeconds, setClockInSeconds] = useState(0);
+//   const [clockInLoading, setClockInLoading] = useState(false);
+//   const [clockOutLoading, setClockOutLoading] = useState(false);
+//   const [locationCache, setLocationCache] = useState(null);
+//   const [clockInLocation, setClockInLocation] = useState(null);
+//   const [clockOutLocation, setClockOutLocation] = useState(null);
+//   const [locationError, setLocationError] = useState(null);
+//   const [clockInLocationName, setClockInLocationName] = useState('Fetching location...');
+//   const [clockOutLocationName, setClockOutLocationName] = useState('Fetching location...');
+//   const [isLoadingData, setIsLoadingData] = useState(true);
+//   const [currentStatus, setCurrentStatus] = useState(null); // 'IN', 'OUT', or null
+//   const [lastCheckinRecord, setLastCheckinRecord] = useState(null);
+//   const [photoUri, setPhotoUri] = useState(null);
+//   const [isLocationReady, setIsLocationReady] = useState(false);
+//   const [locationLoading, setLocationLoading] = useState(true);
+  
+//   const clockInTimerRef = useRef(null);
+//   const ERP_BASE_URL =erpUrl;
+
+//   // Fetch latest checkin status from server
+//   const fetchLatestCheckinStatus = async () => {
+//     try {
+//       const response = await fetch(
+//         `${ERP_BASE_URL}/api/resource/Employee Checkin?fields=["name","employee","log_type","time","latitude","longitude","custom_area_name","custom_photo"]&filters=[["employee","=","${employeeData.name}"]]&order_by=time desc&limit=1`,
+//         {
+//           headers: {
+//             Cookie: `sid=${sid}`,
+//           },
+//         }
+//       );
+
+//       if (!response.ok) {
+//         throw new Error('Failed to fetch checkin status');
+//       }
+
+//       const data = await response.json();
+//       if (data.data && data.data.length > 0) {
+//         const latestCheckin = data.data[0];
+//         setLastCheckinRecord(latestCheckin);
+//         setCurrentStatus(latestCheckin.log_type);
+//         return latestCheckin;
+//       }
+//       setCurrentStatus(null);
+//       return null;
+//     } catch (error) {
+//       console.error('Error fetching checkin status:', error);
+//       setCurrentStatus(null);
+//       return null;
+//     }
+//   };
+
+//   // Request camera permission
+//   const requestCameraPermission = async () => {
+//     if (Platform.OS === 'android') {
+//       try {
+//         const granted = await PermissionsAndroid.request(
+//           PermissionsAndroid.PERMISSIONS.CAMERA,
+//           {
+//             title: 'Camera Permission',
+//             message: 'This app needs access to your camera for attendance verification.',
+//             buttonNeutral: 'Ask Me Later',
+//             buttonNegative: 'Cancel',
+//             buttonPositive: 'OK',
+//           }
+//         );
+//         return granted === PermissionsAndroid.RESULTS.GRANTED;
+//       } catch (err) {
+//         console.error('Camera permission error:', err);
+//         return false;
+//       }
+//     }
+//     return true;
+//   };
+
+//   // Request location permission
+//   const requestLocationPermission = async () => {
+//     if (Platform.OS === 'android') {
+//       try {
+//         const granted = await PermissionsAndroid.request(
+//           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+//           {
+//             title: 'Location Permission',
+//             message: 'This app needs access to your location for attendance tracking.',
+//             buttonNeutral: 'Ask Me Later',
+//             buttonNegative: 'Cancel',
+//             buttonPositive: 'OK',
+//           }
+//         );
+//         return granted === PermissionsAndroid.RESULTS.GRANTED;
+//       } catch (err) {
+//         return false;
+//       }
+//     }
+//     return true;
+//   };
+
+//   // Initialize location on component mount
+//   const initializeLocation = async () => {
+//     try {
+//       setLocationLoading(true);
+//       setLocationError(null);
+      
+//       const hasPermission = await requestLocationPermission();
+//       if (!hasPermission) {
+//         setLocationError('Location permission denied');
+//         setIsLocationReady(false);
+//         return;
+//       }
+
+//       // Try to get current location
+//       const coords = await getQuickLocation();
+//       setLocationCache({ coords, timestamp: Date.now() });
+//       setIsLocationReady(true);
+//       setLocationError(null);
+      
+//     } catch (error) {
+//       console.error('Error initializing location:', error);
+//       setLocationError('Failed to get location. Please ensure location is enabled.');
+//       setIsLocationReady(false);
+      
+//       // Check if we have cached location
+//       if (locationCache && (Date.now() - locationCache.timestamp) < LOCATION_CACHE_EXPIRY) {
+//         setIsLocationReady(true);
+//         setLocationError(null);
+//       }
+//     } finally {
+//       setLocationLoading(false);
+//     }
+//   };
+
+//   const getQuickLocation = async () => {
+//     return new Promise((resolve, reject) => {
+//       Geolocation.getCurrentPosition(
+//         position => resolve(position.coords),
+//         error => reject(error),
+//         {
+//           enableHighAccuracy: false,
+//           timeout: 10000, // Increased timeout for better reliability
+//           maximumAge: 30000
+//         }
+//       );
+//     });
+//   };
+
+//   const takePhoto = async () => {
+//     try {
+//       const hasPermission = await requestCameraPermission();
+//       if (!hasPermission) {
+//         throw new Error('Camera permission denied');
+//       }
+
+//       const options = {
+//         mediaType: 'photo',
+//         quality: 0.3,
+//         maxWidth: 800,
+//         maxHeight: 800,
+//         cameraType: 'back',
+//         saveToPhotos: false,
+//         orientation: 'portrait',
+//         fixOrientation: true,
+//         forceUpOrientation: true,
+//         noData: true,
+//       };
+
+//       const result = await launchCamera(options);
+      
+//       if (result.didCancel) {
+//         throw new Error('User cancelled camera');
+//       } else if (result.errorCode) {
+//         throw new Error(`Camera Error: ${result.errorMessage}`);
+//       } else if (result.assets && result.assets.length > 0) {
+//         const uri = result.assets[0].uri;
+        
+//         // Resize and force portrait orientation
+//         const resizedImage = await ImageResizer.createResizedImage(
+//           uri,
+//           800, // width
+//           1000, // height (greater than width to ensure portrait)
+//           'JPEG',
+//           80, // quality
+//           0, // rotation
+//           null, // outputPath (null for cache directory)
+//           false, // keepMeta
+//           { mode: 'cover', onlyScaleDown: true } // options
+//         );
+        
+//         setPhotoUri(resizedImage.uri);
+//         return resizedImage.uri;
+//       } else {
+//         throw new Error('No photo captured');
+//       }
+//     } catch (error) {
+//       console.error('Error taking photo:', error);
+//       throw error;
+//     }
+//   };
+
+//   // Modified uploadAndAttachPhoto function
+//   const uploadAndAttachPhoto = async (checkinName, photoUri) => {
+//     if (!photoUri) {
+//       console.log('No photo to upload');
+//       throw new Error('No photo to upload');
+//     }
+    
+//     try {
+//       // First verify image orientation
+//       const { width, height } = await new Promise((resolve, reject) => {
+//         Image.getSize(photoUri, (width, height) => {
+//           resolve({ width, height });
+//         }, reject);
+//       });
+
+//       // Ensure portrait orientation (height > width)
+//       if (width > height) {
+//         // If landscape, rotate it
+//         const rotatedImage = await ImageResizer.createResizedImage(
+//           photoUri,
+//           height, // new width
+//           width, // new height
+//           'JPEG',
+//           80,
+//           90, // rotate 90 degrees
+//           null,
+//           false,
+//           { mode: 'cover', onlyScaleDown: true }
+//         );
+//         photoUri = rotatedImage.uri;
+//       }
+
+//       // Proceed with upload
+//       const formData = new FormData();
+//       formData.append('file', {
+//         uri: photoUri,
+//         name: `attendance_${checkinName}.jpg`,
+//         type: 'image/jpeg',
+//       });
+//       formData.append('is_private', 0);
+//       formData.append('folder', 'Home/Attachments');
+//       formData.append('doctype', 'Employee Checkin');
+//       formData.append('docname', checkinName);
+//       formData.append('fieldname', 'custom_photo');
+
+//       const uploadResponse = await fetch(`${ERP_BASE_URL}/api/method/upload_file`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'multipart/form-data',
+//           'Accept': 'application/json',
+//           'Cookie': `sid=${sid}`,
+//         },
+//         body: formData,
+//       });
+
+//       if (!uploadResponse.ok) {
+//         const errText = await uploadResponse.text();
+//         throw new Error(`Failed to upload photo: ${errText}`);
+//       }
+
+//       const uploadResult = await uploadResponse.json();
+      
+//       // Update the checkin record
+//       const updateResponse = await fetch(`${ERP_BASE_URL}/api/resource/Employee Checkin/${checkinName}`, {
+//         method: 'PUT',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Cookie': `sid=${sid}`,
+//         },
+//         body: JSON.stringify({
+//           custom_photo: uploadResult.message.file_url
+//         }),
+//       });
+
+//       if (!updateResponse.ok) {
+//         const errText = await updateResponse.text();
+//         throw new Error(`Failed to update checkin record: ${errText}`);
+//       }
+
+//       return true;
+//     } catch (error) {
+//       console.error('Error in photo upload:', error);
+//       throw error;
+//     }
+//   };
+
+//   // Fetch previous checkin records (for getting both IN and OUT records)
+//   const fetchCheckinRecords = async () => {
+//     try {
+//       const response = await fetch(
+//         `${ERP_BASE_URL}/api/resource/Employee Checkin?fields=["name","employee","log_type","time","latitude","longitude","custom_area_name","custom_photo"]&filters=[["employee","=","${employeeData.name}"]]&order_by=time desc&limit=2`,
+//         {
+//           headers: {
+//             Cookie: `sid=${sid}`,
+//           },
+//         }
+//       );
+
+//       if (!response.ok) {
+//         throw new Error('Failed to fetch checkin records');
+//       }
+
+//       const data = await response.json();
+//       return data.data || [];
+//     } catch (error) {
+//       console.error('Error fetching checkin records:', error);
+//       return [];
+//     }
+//   };
+
+//   // Extract time from datetime string (HH:MM AM/PM format)
+//   const extractTimeFromDateTime = (dateTimeString) => {
+//     if (!dateTimeString) return '';
+//     try {
+//       const date = new Date(dateTimeString);
+//       if (isNaN(date.getTime())) {
+//         const parts = dateTimeString.split(/[- :T]/);
+//         const fixedDate = new Date(
+//           parts[0],
+//           parts[1] - 1,
+//           parts[2],
+//           parts[3],
+//           parts[4],
+//           parts[5] || 0
+//         );
+//         if (!isNaN(fixedDate.getTime())) {
+//           return fixedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+//         }
+//         return 'Invalid time';
+//       }
+//       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+//     } catch (error) {
+//       console.error('Error parsing time:', error);
+//       return 'Invalid time';
+//     }
+//   };
+
+//   // Calculate time difference in HH:MM:SS format
+//   const calculateTimeDifference = (startTime, endTime) => {
+//     if (!startTime || !endTime) return '00:00:00';
+    
+//     try {
+//       let start = new Date(startTime);
+//       let end = new Date(endTime);
+      
+//       if (isNaN(start.getTime())) {
+//         // Try alternative parsing if standard parsing fails
+//         const parts = startTime.split(/[- :T]/);
+//         const fixedStart = new Date(
+//           parts[0],
+//           parts[1] - 1,
+//           parts[2],
+//           parts[3],
+//           parts[4],
+//           parts[5] || 0
+//         );
+//         if (!isNaN(fixedStart.getTime())) {
+//           start = fixedStart;
+//         }
+//       }
+
+//       if (isNaN(end.getTime())) {
+//         const parts = endTime.split(/[- :T]/);
+//         const fixedEnd = new Date(
+//           parts[0],
+//           parts[1] - 1,
+//           parts[2],
+//           parts[3],
+//           parts[4],
+//           parts[5] || 0
+//         );
+//         if (!isNaN(fixedEnd.getTime())) {
+//           end = fixedEnd;
+//         }
+//       }
+      
+//       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+//         return '00:00:00';
+//       }
+      
+//       const diffMs = end - start;
+//       const diffSec = Math.floor(diffMs / 1000);
+//       const h = Math.floor(diffSec / 3600).toString().padStart(2, '0');
+//       const m = Math.floor((diffSec % 3600) / 60).toString().padStart(2, '0');
+//       const s = (diffSec % 60).toString().padStart(2, '0');
+      
+//       return `${h}:${m}:${s}`;
+//     } catch (error) {
+//       console.error('Error calculating time difference:', error);
+//       return '00:00:00';
+//     }
+//   };
+
+//   // Calculate elapsed seconds from clock-in time
+//   const calculateElapsedSeconds = (clockInTime) => {
+//     if (!clockInTime) return 0;
+    
+//     try {
+//       const clockInDate = new Date(clockInTime);
+//       if (isNaN(clockInDate.getTime())) {
+//         // Try alternative parsing if standard parsing fails
+//         const parts = clockInTime.split(/[- :T]/);
+//         const fixedDate = new Date(
+//           parts[0],
+//           parts[1] - 1,
+//           parts[2],
+//           parts[3],
+//           parts[4],
+//           parts[5] || 0
+//         );
+//         if (!isNaN(fixedDate.getTime())) {
+//           return Math.floor((new Date() - fixedDate) / 1000);
+//         }
+//         return 0;
+//       }
+//       return Math.floor((new Date() - clockInDate) / 1000);
+//     } catch (error) {
+//       console.error('Error calculating elapsed seconds:', error);
+//       return 0;
+//     }
+//   };
+
+//   // Refresh data
+//   const refreshData = async () => {
+//     try {
+//       const latestCheckin = await fetchLatestCheckinStatus();
+      
+//       if (latestCheckin) {
+//         if (latestCheckin.log_type === 'IN') {
+//           setClockInTime(latestCheckin.time);
+//           const elapsedSeconds = calculateElapsedSeconds(latestCheckin.time);
+//           setClockInSeconds(elapsedSeconds);
+//           startClockInTimer();
+//           setClockOutTime(null);
+          
+//           if (latestCheckin.latitude && latestCheckin.longitude) {
+//             const coords = {
+//               latitude: latestCheckin.latitude,
+//               longitude: latestCheckin.longitude,
+//               accuracy: 0
+//             };
+//             setClockInLocation(coords);
+//           }
+          
+//           // Set location name from custom_area_name
+//           if (latestCheckin.custom_area_name) {
+//             setClockInLocationName(latestCheckin.custom_area_name);
+//           } else {
+//             setClockInLocationName('Location not specified');
+//           }
+//         } else if (latestCheckin.log_type === 'OUT') {
+//           const records = await fetchCheckinRecords();
+//           if (records.length > 0) {
+//             setClockOutTime(records[0].time);
+            
+//             const inRecord = records.find(r => r.log_type === 'IN');
+//             if (inRecord) {
+//               setClockInTime(inRecord.time);
+//             }
+            
+//             // Set location name from custom_area_name
+//             if (records[0].custom_area_name) {
+//               setClockOutLocationName(records[0].custom_area_name);
+//             } else {
+//               setClockOutLocationName('Location not specified');
+//             }
+//           }
+//         }
+//       } else {
+//         setClockInTime(null);
+//         setClockOutTime(null);
+//         setCurrentStatus(null);
+//       }
+//     } catch (error) {
+//       console.error('Error refreshing data:', error);
+//       Alert.alert('Error', 'Failed to refresh data');
+//     }
+//   };
+
+//   // Load saved data on component mount
+//   useEffect(() => {
+//     const loadData = async () => {
+//       try {
+//         // Initialize location first
+//         await initializeLocation();
+        
+//         // Then fetch the latest status from server
+//         const latestCheckin = await fetchLatestCheckinStatus();
+        
+//         if (latestCheckin) {
+//           if (latestCheckin.log_type === 'IN') {
+//             // If latest is IN, show clock out button and timer
+//             setClockInTime(latestCheckin.time);
+//             const elapsedSeconds = calculateElapsedSeconds(latestCheckin.time);
+//             setClockInSeconds(elapsedSeconds);
+//             startClockInTimer();
+//             setClockOutTime(null);
+            
+//             // Set location if available
+//             if (latestCheckin.latitude && latestCheckin.longitude) {
+//               const coords = {
+//                 latitude: latestCheckin.latitude,
+//                 longitude: latestCheckin.longitude,
+//                 accuracy: 0
+//               };
+//               setClockInLocation(coords);
+//             }
+            
+//             // Set location name from custom_area_name
+//             if (latestCheckin.custom_area_name) {
+//               setClockInLocationName(latestCheckin.custom_area_name);
+//             } else {
+//               setClockInLocationName('Location not specified');
+//             }
+//           } else if (latestCheckin.log_type === 'OUT') {
+//             // If latest is OUT, show clock in button and fetch both records
+//             const records = await fetchCheckinRecords();
+//             if (records.length > 0) {
+//               // First record is the OUT
+//               setClockOutTime(records[0].time);
+              
+//               // Find the previous IN record
+//               const inRecord = records.find(r => r.log_type === 'IN');
+//               if (inRecord) {
+//                 setClockInTime(inRecord.time);
+//               }
+              
+//               // Set location name from custom_area_name
+//               if (records[0].custom_area_name) {
+//                 setClockOutLocationName(records[0].custom_area_name);
+//               } else {
+//                 setClockOutLocationName('Location not specified');
+//               }
+//             }
+//           }
+//         }
+//       } catch (error) {
+//         console.error('Error loading data:', error);
+//       } finally {
+//         setIsLoadingData(false);
+//       }
+//     };
+
+//     loadData();
+    
+//     return () => {
+//       if (clockInTimerRef.current) {
+//         clearInterval(clockInTimerRef.current);
+//       }
+//     };
+//   }, [employeeData.name]);
+
+//   const startClockInTimer = () => {
+//     if (clockInTimerRef.current) {
+//       clearInterval(clockInTimerRef.current);
+//     }
+    
+//     // Update immediately to ensure no delay
+//     if (clockInTime) {
+//       const elapsedSeconds = calculateElapsedSeconds(clockInTime);
+//       setClockInSeconds(elapsedSeconds);
+//     }
+    
+//     // Then start the interval
+//     clockInTimerRef.current = setInterval(() => {
+//       setClockInSeconds(prev => prev + 1);
+//     }, 1000);
+//   };
+
+//   // Timer effect
+//   useEffect(() => {
+//     if (currentStatus === 'IN' && clockInTime) {
+//       startClockInTimer();
+//     } else {
+//       if (clockInTimerRef.current) {
+//         clearInterval(clockInTimerRef.current);
+//       }
+//       setClockInSeconds(0);
+//     }
+//   }, [currentStatus, clockInTime]);
+
+//   const getLocationWithFallback = async (isClockIn) => {
+//     setLocationError(null);
+//     if (isClockIn) {
+//       setClockInLocationName('Getting location...');
+//     } else {
+//       setClockOutLocationName('Getting location...');
+//     }
+    
+//     try {
+//       const coords = await getQuickLocation();
+//       setLocationCache({ coords, timestamp: Date.now() });
+//       setIsLocationReady(true);
+//       return coords;
+//     } catch (error) {
+//       if (locationCache && (Date.now() - locationCache.timestamp) < LOCATION_CACHE_EXPIRY) {
+//         return locationCache.coords;
+//       }
+      
+//       throw new Error('Turn on your location.');
+//     }
+//   };
+
+//   const formatTimeForERP = (date) => {
+//     return `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+//   };
+
+//   const formatTime = (seconds) => {
+//     const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+//     const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+//     const s = (seconds % 60).toString().padStart(2, '0');
+//     return `${h}:${m}:${s}`;
+//   };
+
+//   const handleClockIn = async () => {
+//     if (clockInLoading || !isLocationReady) return;
+
+//     setClockInLoading(true);
+//     setLocationError(null);
+//     setPhotoUri(null);
+    
+//     try {
+//       // Take photo first - if this fails, it will throw an error
+//       const photoPath = await takePhoto();
+      
+//       // Only proceed if photo was captured successfully
+//       const coords = await getLocationWithFallback(true);
+      
+//       const now = new Date();
+//       const timeString = formatTimeForERP(now);
+      
+//       const res = await fetch(`${ERP_BASE_URL}/api/resource/Employee Checkin`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           Cookie: `sid=${sid}`,
+//         },
+//         body: JSON.stringify({
+//           employee: employeeData.name,
+//           log_type: 'IN',
+//           time: timeString,
+//           latitude: coords.latitude,
+//           longitude: coords.longitude,
+//           accuracy: coords.accuracy,
+//         }),
+//       });
+
+//       if (!res.ok) {
+//         const errText = await res.text();
+//         throw new Error(`Failed to clock in: ${errText}`);
+//       }
+
+//       const responseData = await res.json();
+//       const checkinName = responseData.data.name;
+
+//       // Upload and attach photo - if this fails, it will throw an error
+//       await uploadAndAttachPhoto(checkinName, photoPath);
+
+//       // After successful clock in, fetch the latest status to ensure UI is in sync
+//       const latestCheckin = await fetchLatestCheckinStatus();
+      
+//       if (latestCheckin && latestCheckin.log_type === 'IN') {
+//         setClockInTime(latestCheckin.time);
+//         const elapsedSeconds = calculateElapsedSeconds(latestCheckin.time);
+//         setClockInSeconds(elapsedSeconds);
+//         startClockInTimer();
+        
+//         if (latestCheckin.latitude && latestCheckin.longitude) {
+//           const serverCoords = {
+//             latitude: latestCheckin.latitude,
+//             longitude: latestCheckin.longitude,
+//             accuracy: 0
+//           };
+//           setClockInLocation(serverCoords);
+//         }
+        
+//         // Set location name from custom_area_name
+//         if (latestCheckin.custom_area_name) {
+//           setClockInLocationName(latestCheckin.custom_area_name);
+//         } else {
+//           setClockInLocationName('Location not specified');
+//         }
+//       }
+      
+//       setClockOutTime(null);
+      
+//       Alert.alert('Success', 'Clock-in recorded successfully.');
+//     } catch (error) {
+//       setLocationError(error.message);
+//       Alert.alert('Error', error.message);
+//     } finally {
+//       setClockInLoading(false);
+//     }
+//   };
+
+//   const handleClockOut = async () => {
+//     if (clockOutLoading || !isLocationReady) return;
+
+//     setClockOutLoading(true);
+//     setLocationError(null);
+//     setPhotoUri(null);
+    
+//     try {
+//       // Take photo first - if this fails, it will throw an error
+//       const photoPath = await takePhoto();
+      
+//       // Only proceed if photo was captured successfully
+//       const coords = await getLocationWithFallback(false);
+      
+//       const now = new Date();
+//       const timeString = formatTimeForERP(now);
+      
+//       const res = await fetch(`${ERP_BASE_URL}/api/resource/Employee Checkin`, {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//           Cookie: `sid=${sid}`,
+//         },
+//         body: JSON.stringify({
+//           employee: employeeData.name,
+//           log_type: 'OUT',
+//           time: timeString,
+//           latitude: coords.latitude,
+//           longitude: coords.longitude,
+//           accuracy: coords.accuracy,
+//         }),
+//       });
+
+//       if (!res.ok) {
+//         const errText = await res.text();
+//         throw new Error(`Failed to clock out: ${errText}`);
+//       }
+
+//       const responseData = await res.json();
+//       const checkinName = responseData.data.name;
+
+//       // Upload and attach photo - if this fails, it will throw an error
+//       await uploadAndAttachPhoto(checkinName, photoPath);
+
+//       // After successful clock out, fetch the latest status to ensure UI is in sync
+//       const latestCheckin = await fetchLatestCheckinStatus();
+      
+//       if (latestCheckin && latestCheckin.log_type === 'OUT') {
+//         setClockOutTime(latestCheckin.time);
+//         setClockOutLocation({
+//           latitude: latestCheckin.latitude,
+//           longitude: latestCheckin.longitude,
+//           accuracy: 0
+//         });
+        
+//         // Set location name from custom_area_name
+//         if (latestCheckin.custom_area_name) {
+//           setClockOutLocationName(latestCheckin.custom_area_name);
+//         } else {
+//           setClockOutLocationName('Location not specified');
+//         }
+//       }
+      
+//       Alert.alert('Success', 'Clock-out recorded successfully.');
+//     } catch (error) {
+//       setLocationError(error.message);
+      
+//       if (locationCache && (Date.now() - locationCache.timestamp) < LOCATION_CACHE_EXPIRY * 2) {
+//         const useCached = await new Promise(resolve => {
+//           Alert.alert(
+//             'Location Problem',
+//             'please Turn on Location',
+//             [
+//               { text: 'Cancel', onPress: () => resolve(false), style: 'cancel' },
+//               { text: 'Use Cached', onPress: () => resolve(true) }
+//             ]
+//           );
+//         });
+        
+//         if (useCached) {
+//           // Take photo again even when using cached location
+//           const cachedPhotoPath = await takePhoto();
+          
+//           const now = new Date();
+//           const timeString = formatTimeForERP(now);
+          
+//           const res = await fetch(`${ERP_BASE_URL}/api/resource/Employee Checkin`, {
+//             method: 'POST',
+//             headers: {
+//               'Content-Type': 'application/json',
+//               Cookie: `sid=${sid}`,
+//             },
+//             body: JSON.stringify({
+//               employee: employeeData.name,
+//               log_type: 'OUT',
+//               time: timeString,
+//               latitude: locationCache.coords.latitude,
+//               longitude: locationCache.coords.longitude,
+//               accuracy: locationCache.coords.accuracy,
+//             }),
+//           });
+
+//           if (!res.ok) {
+//             const errText = await res.text();
+//             throw new Error(`Failed to clock out: ${errText}`);
+//           }
+
+//           const responseData = await res.json();
+//           const checkinName = responseData.data.name;
+
+//           // Upload and attach photo - if this fails, it will throw an error
+//           await uploadAndAttachPhoto(checkinName, cachedPhotoPath);
+
+//           setClockOutTime(now);
+//           setClockOutLocation(locationCache.coords);
+//           setClockOutLocationName('Location not specified'); // Default since we don't have area name
+//           Alert.alert('Success', 'Clock-out recorded with cached location.');
+//           return;
+//         }
+//       }
+      
+//       Alert.alert('Error', error.message);
+//     } finally {
+//       setClockOutLoading(false);
+//     }
+//   };
+
+//   // Retry location initialization
+//   const retryLocation = async () => {
+//     await initializeLocation();
+//   };
+
+//   if (isLoadingData || locationLoading) {
+//     return (
+//       <View style={[styles.outerContainer, { justifyContent: 'center', alignItems: 'center', }]}>
+//         <ActivityIndicator size="large" color="#4CAF50" />
+//         <Text style={{ marginTop: 10 }}>Loading attendance data...</Text>
+//         <Text style={{ marginTop: 5, fontSize: 12, color: '#666' }}>
+//           Fetching location...
+//         </Text>
+//       </View>
+//     );
+//   }
+
+//   return (
+//     <View style={styles.outerContainer}>
+//       {/* Preview of captured photo */}
+//       {photoUri && (
+//         <View style={styles.photoPreviewContainer}>
+//           <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+//         </View>
+//       )}
+
+//       {/* Location Status */}
+//       {!isLocationReady && (
+//         <View style={styles.locationStatusContainer}>
+//           <Ionicons name="location-outline" size={24} color="#f44336" />
+//           <Text style={styles.locationErrorText}>
+//             Location not available. {locationError}
+//           </Text>
+//           <TouchableOpacity style={styles.retryButton} onPress={retryLocation}>
+//             <Text style={styles.retryButtonText}>Retry Location</Text>
+//           </TouchableOpacity>
+//         </View>
+//       )}
+
+//       {/* Info Container */}
+//       <View style={styles.infoContainer}>
+//         {currentStatus === 'IN' && clockInTime ? (
+//           <>
+//             <Text style={styles.timeLabel}>Punch In Time:</Text>
+//             <Text style={styles.timeText}>
+//               {extractTimeFromDateTime(clockInTime)}
+//             </Text>
+//             <Text style={styles.timerText}>Timer: {formatTime(clockInSeconds)}</Text>
+//             {clockInLocationName && (
+//               <Text style={styles.locationText}>
+//                 {clockInLocationName}
+//               </Text>
+//             )}
+//           </>
+//         ) : currentStatus === 'OUT' && clockOutTime ? (
+//           <>
+//             <Text style={styles.timeLabel}>Punch Out Time:</Text>
+//             <Text style={styles.timeText}>
+//               {extractTimeFromDateTime(clockOutTime)}
+//             </Text>
+//             {clockInTime && (
+//               <>
+//                 <Text style={styles.timerText}>Total Time: {calculateTimeDifference(clockInTime, clockOutTime)}</Text>
+//               </>
+//             )}
+//             {clockOutLocationName && (
+//               <Text style={styles.locationText}>
+//                 {clockOutLocationName}
+//               </Text>
+//             )}
+//           </>
+//         ) : (
+//           <Text style={styles.placeholderText}>No attendance record yet</Text>
+//         )}
+        
+//         {locationError && isLocationReady && (
+//           <Text style={styles.errorText}>{locationError}</Text>
+//         )}
+//       </View>
+
+//       {/* Button Container */}
+//       <View style={styles.buttonContainer}>
+//         {currentStatus !== 'IN' ? (
+//           <TouchableOpacity
+//             style={[
+//               styles.clockInButton, 
+//               (clockInLoading || !isLocationReady) ? styles.buttonDisabled : {}
+//             ]}
+//             onPress={handleClockIn}
+//             disabled={clockInLoading || !isLocationReady}
+//           >
+//             {clockInLoading ? (
+//               <ActivityIndicator color="#fff" />
+//             ) : !isLocationReady ? (
+//               <>
+//                 <Ionicons name="location-outline" size={28} color="#fff" />
+//                 <Text style={styles.clockInButtonText}>Waiting for Location</Text>
+//               </>
+//             ) : (
+//               <>
+//                 <Ionicons name="time-outline" size={28} color="#fff" />
+//                 <Text style={styles.clockInButtonText}>Punch In</Text>
+//               </>
+//             )}
+//           </TouchableOpacity>
+//         ) : (
+//           <TouchableOpacity
+//             style={[
+//               styles.clockOutButton, 
+//               (clockOutLoading || !isLocationReady) ? styles.buttonDisabled : {}
+//             ]}
+//             onPress={handleClockOut}
+//             disabled={clockOutLoading || !isLocationReady}
+//           >
+//             {clockOutLoading ? (
+//               <ActivityIndicator color="#fff" />
+//             ) : !isLocationReady ? (
+//               <>
+//                 <Ionicons name="location-outline" size={28} color="#fff" />
+//                 <Text style={styles.clockOutButtonText}>Waiting for Location</Text>
+//               </>
+//             ) : (
+//               <>
+//                 <Ionicons name="exit-outline" size={28} color="#fff" />
+//                 <Text style={styles.clockOutButtonText}>Punch Out</Text>
+//               </>
+//             )}
+//           </TouchableOpacity>
+//         )}
+//       </View>
+//     </View>
+//   );
+// };
+
+// const styles = StyleSheet.create({
+//   outerContainer: {
+//     flex: 1,
+//     padding: 20,
+//   },
+//   photoPreviewContainer: {
+//     backgroundColor: '#fff',
+//     padding: 10,
+//     borderRadius: 12,
+//     elevation: 2,
+//     borderWidth: 2,
+//     borderColor: 'skyblue',
+//     marginBottom: 10,
+//     alignItems: 'center',
+//   },
+//   photoPreview: {
+//     width: '50%',
+//     height: 200,
+//     borderRadius: 8,
+//     marginLeft:'auto', 
+//     marginRight:'auto',
+//      justifyContent: 'flex-end',
+//   },
+//   locationStatusContainer: {
+//     backgroundColor: '#FFEBEE',
+//     padding: 15,
+//     borderRadius: 12,
+//     alignItems: 'center',
+//     marginBottom: 15,
+//     borderWidth: 1,
+//     borderColor: '#f44336',
+//   },
+//   locationErrorText: {
+//     fontSize: 14,
+//     color: '#D32F2F',
+//     textAlign: 'center',
+//     marginTop: 5,
+//     marginBottom: 10,
+//   },
+//   retryButton: {
+//     backgroundColor: '#f44336',
+//     paddingHorizontal: 20,
+//     paddingVertical: 8,
+//     borderRadius: 6,
+//   },
+//   retryButtonText: {
+//     color: '#fff',
+//     fontSize: 14,
+//     fontWeight: '600',
+//   },
+//   infoContainer: {
+//    backgroundColor: '#ffffff',
+//     padding: 20,
+//     borderRadius: 16,
+//     alignItems: 'center',
+//     elevation: 4,
+//     borderWidth: 1,
+//     borderColor: '#90CAF9',
+//     marginBottom: 20,
+//   },
+//   buttonContainer: {
+//    backgroundColor: '#ffffff',
+//     padding: 24,
+//     borderRadius: 16,
+//     alignItems: 'center',
+//     elevation: 4,
+//     borderWidth: 1,
+//     borderColor: '#90CAF9',
+//   },
+//   clockInButton: {
+//     flexDirection: 'column',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     width: 140,
+//     height: 140,
+//     borderRadius: 80,
+    
+//     backgroundColor: '#2196F3',
+//     elevation: 6,
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowRadius: 6,
+//     borderWidth: 2,
+//     borderColor: 'skyblue',
+//   },
+//   clockOutButton: {
+//     flexDirection: 'column',
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     width: 140,
+//     height: 140,
+//     borderRadius: 80,
+//     backgroundColor: '#f44336', // red
+//     elevation: 6,
+//     shadowColor: '#000',
+//     shadowOpacity: 0.2,
+//     shadowRadius: 6,
+//     borderWidth: 2,
+//     borderColor: '#B71C1C',
+//   },
+//   buttonDisabled: {
+//     opacity: 0.6,
+//   },
+//   clockInButtonText: {
+//     marginTop: 8,
+//     fontSize: 18,
+//     fontWeight: 'bold',
+//     color: '#ffffff',
+//   },
+//   clockOutButtonText: {
+//     marginTop: 8,
+//     fontSize: 18,
+//     fontWeight: 'bold',
+//     color: '#ffffff',
+//   },
+//   timeLabel: {
+//     fontSize: 18,
+//     fontWeight: '600',
+//     color: '#37474F',
+//     marginBottom: 4,
+//   },
+//   timeText: {
+//     fontSize: 20,
+//     fontWeight: 'bold',
+//     color: '#263238',
+//     marginBottom: 10,
+//   },
+//   timerText: {
+//     fontSize: 17,
+//     fontWeight: '600',
+//     color: '#0288D1',
+//     marginBottom: 8,
+//   },
+//   locationText: {
+//     fontSize: 14,
+//     color: '#607D8B',
+//     textAlign: 'center',
+//     marginBottom: 4,
+//   },
+//   errorText: {
+//     fontSize: 14,
+//     color: '#D32F2F',
+//     textAlign: 'center',
+//     marginTop: 6,
+//   },
+//   placeholderText: {
+//     fontSize: 16,
+//     fontStyle: 'italic',
+//     color: '#757575',
+//     textAlign: 'center',
+//   },
+// });
+
+// export default ClockIn;

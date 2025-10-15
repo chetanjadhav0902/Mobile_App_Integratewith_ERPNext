@@ -17,6 +17,10 @@ import AttendanceListScreen from './screens/AttendanceListScreen';
 import SalarySlip from './screens/SalarySlip';
 
 
+ import SiteSurveyList from './screens/SiteSurveyList';
+ import SiteSurveyFormScreen from './screens/SiteSurveyFormScreen';
+
+
 import LeaveRequestScreen from './LeaveFolder/LeaveRequestScreen';
 import LeaveApplicationForm from './LeaveFolder/LeaveApplicationForm';
 import ApplicationStatus from './LeaveFolder/ApplicationStatus';
@@ -29,10 +33,18 @@ import OdRecentApplication from './OnDuty/OdRecentApplication.jsx';
 import OdApplicationStatus from './OnDuty/OdApplicationStatus.jsx';
 
 
+
+import AttendanceRe from './AttendanceRequest/AttendanceRe.jsx';
+import AttendanceReForm from './AttendanceRequest/AttendanceReForm.jsx';
+import AttendanceReStatus from './AttendanceRequest/AttendanceReStatus.jsx'
+import AttendanceReApplication from './AttendanceRequest/AttendanceReApplication.jsx';
+
+
 import TimeSheet from './Timesheet/TimeSheet';
 //import TimeSheetScreen from './Timesheet/TimeSheetScreen';
 
 
+import OTFORM from './OT/OTFORM.jsx';
 
 
 const Stack = createNativeStackNavigator();
@@ -60,6 +72,24 @@ export default function App() {
         <Stack.Screen name="OdApplicationStatus" component={OdApplicationStatus} />
 
 
+        <Stack.Screen name="AttendanceRe" component={AttendanceRe} />
+        <Stack.Screen name="AttendanceReForm" component={AttendanceReForm} />
+        <Stack.Screen name="AttendanceReApplication" component={AttendanceReApplication} />
+        <Stack.Screen name="AttendanceReStatus" component={AttendanceReStatus} />
+
+
+
+          <Stack.Screen 
+          name="SiteSurveyForm" 
+         component={SiteSurveyFormScreen}
+          options={{ title: 'Site Survey Form' }}
+         />
+
+         <Stack.Screen name="SiteSurveyList" component={SiteSurveyList} options={{title:"Site Survery List"}} />
+
+
+
+
         <Stack.Screen name="SalarySlip" component={SalarySlip} />
 
         
@@ -70,6 +100,10 @@ export default function App() {
 
       
         <Stack.Screen name="Timesheet" component={TimeSheet} />
+
+        <Stack.Screen name="OTFORM" component={OTFORM} options={{title: 'OT'}}  />
+         
+
 
 
       </Stack.Navigator>
@@ -83,6 +117,15 @@ export default function App() {
   );
 }
 
+
+
+        //  <Stack.Screen 
+        //  name="SiteSurveyForm" 
+        // component={SiteSurveyFormScreen}
+        //  options={{ title: 'Site Survey Form' }}
+        // />
+
+        // <Stack.Screen name="SiteSurveyList" component={SiteSurveyList} options={{title:"Site Survery List"}} />
 
 
 
