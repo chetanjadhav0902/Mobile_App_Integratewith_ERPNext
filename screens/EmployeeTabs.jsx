@@ -511,6 +511,10 @@ const EmployeeTabs = ({ route }) => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Location Permission Logic
+
+
+ 
+
   useEffect(() => {
     const requestLocationPermission = async () => {
       if (Platform.OS === 'android') {
@@ -696,8 +700,8 @@ const EmployeeTabs = ({ route }) => {
           component={SettingsScreen}
           initialParams={{ employeeData, sid, erpUrl }}
           options={{
-            tabBarLabel: 'Reports',
-            headerTitle: 'Reports',
+            tabBarLabel: 'Task',
+            headerTitle: 'Task',
             headerRight: renderNotificationIcon,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="document-text-outline" size={size} color={color} />
@@ -714,6 +718,117 @@ const EmployeeTabs = ({ route }) => {
           }}
         />
       </Tab.Navigator>
+
+
+      {/* <Tab.Navigator
+  initialRouteName="Home"
+  screenOptions={({ route }) => ({
+    tabBarIcon: ({ focused, color, size }) => {
+      let iconName;
+      switch (route.name) {
+        case 'Home': iconName = focused ? 'home' : 'home-outline'; break;
+        case 'Profile': iconName = focused ? 'person-circle' : 'person-circle-outline'; break;
+        case 'Report': iconName = focused ? 'document-text' : 'document-text-outline'; break;
+        case 'Logout': iconName = focused ? 'log-out' : 'log-out-outline'; break;
+      }
+      return <Ionicons name={iconName} size={size} color={color} />;
+    },
+    tabBarActiveTintColor: '#007bff',
+    tabBarInactiveTintColor: 'gray',
+    headerShown: true,
+    tabBarStyle: {
+      backgroundColor: '#fff',
+      borderTopWidth: 0.5,
+      borderTopColor: '#ccc',
+      height: 50,
+    },
+    tabBarLabelStyle: {
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    swipeEnabled: false,
+  })}
+>
+
+
+  <Tab.Screen
+    name="Home"
+    component={HomeScreen}
+    initialParams={{ employeeData, sid, erpUrl }}
+    options={{
+      tabBarLabel: 'Home',
+
+      headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.getParent().openDrawer()}
+              style={{ marginLeft: 15 }}
+            >
+              <Text style={{ fontSize: 26, fontWeight: "900" }}>☰</Text>
+            </TouchableOpacity>
+          ),
+
+
+      
+
+      headerTitle: () => (
+        <View style={{ alignItems: 'center' }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 14, color: 'black' }}>
+            {employeeData?.company || 'Company'}
+          </Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 12, color: 'black' }}>
+            Welcome, {employeeData?.employee_name || 'Employee'}
+          </Text>
+        </View>
+      ),
+      headerTitleAlign: 'center',
+      headerRight: renderNotificationIcon,
+    }}
+  />
+
+
+
+  
+  <Tab.Screen
+    name="Profile"
+    component={ProfileScreen}
+    initialParams={{ employeeData, sid, erpUrl }}
+    options={{
+      tabBarLabel: 'Profile',
+      headerTitle: 'My Profile',
+      headerRight: renderNotificationIcon,
+      headerLeft: () => null,
+    }}
+  />
+
+
+  <Tab.Screen
+    name="Report"
+    component={SettingsScreen}
+    initialParams={{ employeeData, sid, erpUrl }}
+    options={{
+      tabBarLabel: 'Reports',
+      headerTitle: 'Reports',
+      headerRight: renderNotificationIcon,
+      headerLeft: () => null,
+      tabBarIcon: ({ color, size }) => (
+        <Ionicons name="document-text-outline" size={size} color={color} />
+      ),
+    }}
+  />
+
+  
+  <Tab.Screen
+    name="Logout"
+    component={LogoutScreen}
+    initialParams={{ employeeData }}
+    options={{
+      tabBarLabel: 'Logout',
+      headerTitle: 'Logout',
+      headerLeft: () => null,
+    }}
+  />
+
+</Tab.Navigator>  */}
 
       <NotificationModal
         visible={showModal}

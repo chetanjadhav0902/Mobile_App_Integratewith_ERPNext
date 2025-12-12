@@ -4761,6 +4761,7 @@ import { Calendar } from 'react-native-calendars';
 import moment from 'moment';
 import { encode } from 'base-64';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 //const ERP_BASE_URL = 'https://erpnextcloud.cbditsolutions.com';
 //const ERP_BASE_URL = 'https://erpnextcloud.cbditsolutions.com';
@@ -4853,7 +4854,7 @@ const DAILY_QUOTES = [
 const { width } = Dimensions.get('window');
 
 const HomeScreen = ({ route, navigation }) => {
-  const { sid, employeeData, erpUrl } = route.params;
+  const { sid, employeeData, erpUrl  } = route.params;
   const [markedDates, setMarkedDates] = useState({});
   const [loading, setLoading] = useState(true);
   const [anniversaryList, setAnniversaryList] = useState([]);
@@ -4861,6 +4862,8 @@ const HomeScreen = ({ route, navigation }) => {
   const [quote, setQuote] = useState(DAILY_QUOTES[0]);
   const [refreshing, setRefreshing] = useState(false);
   const ERP_BASE_URL = erpUrl;
+
+
 
   const getTodaysQuote = () => {
     const now = new Date();
@@ -4874,9 +4877,11 @@ const HomeScreen = ({ route, navigation }) => {
 
   const fetchHolidays = async () => {
     try {
+
       const holidayList = employeeData.holiday_list;
       if (!holidayList) return {};
-
+      
+       
       const response = await fetch(
         `${ERP_BASE_URL}${HOLIDAY_LIST_ENDPOINT}/${encodeURIComponent(holidayList)}`,
         { headers: { Cookie: `sid=${sid}` } }
@@ -4910,7 +4915,7 @@ const HomeScreen = ({ route, navigation }) => {
           }
         };
       });
-
+  
       return holidayMarks;
     } catch (err) {
       console.error('Failed to fetch holidays:', err);
@@ -5018,6 +5023,8 @@ const HomeScreen = ({ route, navigation }) => {
       setAnniversaryList(filtered);
     } catch (error) {
       console.error('API Error:', error);
+        
+      
     }
   };
 
@@ -5270,7 +5277,7 @@ const HomeScreen = ({ route, navigation }) => {
               <Text style={styles.applicationText}>Att. History</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[styles.applicationCard, { backgroundColor: '#E8F5E8' }]}
               onPress={() => navigation.navigate('SiteSurveyList', { sid, employeeData, erpUrl })}
               activeOpacity={0.7}
@@ -5278,17 +5285,18 @@ const HomeScreen = ({ route, navigation }) => {
              
 
               <Image
-                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/684/684908.png' }}
+                 //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/684/684908.png' }}
+                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
                  style={{ width: 30, height: 30, tintColor: '#43b53fff' }}
                />
-              <Text style={styles.applicationText}>Site Survey</Text>
-            </TouchableOpacity>
+              <Text style={styles.applicationText}>Expense Claim</Text>
+            </TouchableOpacity> */}
 
             {/* Empty third slot to maintain spacing */}
-           {/* <View style={[styles.applicationCard, { backgroundColor: 'transparent', elevation: 0 }]} />*/}
+           {/* <View style={[styles.applicationCard, { backgroundColor: 'transparent', elevation: 0 }]} /> */}
 
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[styles.applicationCard, { backgroundColor: '#E8F5E8' }]}
               onPress={() => navigation.navigate('OTFORM', { sid, employeeData, erpUrl })}
               activeOpacity={0.7}
@@ -5297,11 +5305,12 @@ const HomeScreen = ({ route, navigation }) => {
 
               <Image
                  //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/684/684908.png' }}
+                //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
                  style={{ width: 30, height: 30, tintColor: '#FF9800' }}
                />
-              <Text style={styles.applicationText}>OT</Text>
-            </TouchableOpacity>
+              <Text style={styles.applicationText}>Lead</Text>
+            </TouchableOpacity> */}
 
 
           </View>
@@ -5588,3 +5597,955 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useEffect, useState, useRef } from 'react';
+// import {
+//   View, Text, StyleSheet, TouchableOpacity,
+//   ScrollView, SafeAreaView, StatusBar,
+//   ActivityIndicator, Alert, FlatList, RefreshControl, Image,
+//   Dimensions, Animated
+// } from 'react-native';
+// import Ionicons from 'react-native-vector-icons/Ionicons';
+// import { Calendar } from 'react-native-calendars';
+// import moment from 'moment';
+// import { encode } from 'base-64';
+// import axios from 'axios';
+
+// //const ERP_BASE_URL = 'https://erpnextcloud.cbditsolutions.com';
+// //const ERP_BASE_URL = 'https://erpnextcloud.cbditsolutions.com';
+// //const ERP_BASE_URL = 'https://mpda.in';
+// const ATTENDANCE_ENDPOINT = '/api/resource/Attendance';
+// const HOLIDAY_LIST_ENDPOINT = '/api/resource/Holiday List';
+// const EMPLOYEE_ENDPOINT = '/api/resource/Employee';
+// import AttendanceList from './AttendanceList';
+
+// const STATUS_COLORS = {
+//   Present: '#4CAF50',
+//   Absent: '#F44336',
+//   'Half Day': '#FF9800',
+//   'On Leave': '#2196F3',
+//   'Work From Home': '#9C27B0',
+//   Holiday: '#87CEEB',
+//   Weekend: '#9E9E9E'
+// };
+
+// const DAILY_QUOTES = [
+//   "It always seems impossible until it's done.",
+//   "Believe in yourself and all that you are.",
+//   "Push yourself, because no one else is going to do it for you.",
+//   "Success is not for the lazy.",
+//   "Dream it. Wish it. Do it.",
+//   "Creativity is intelligence having fun.",
+//   "Think outside the box—if you're even in a box to begin with.",
+//   "Logic will get you from A to B. Imagination will take you everywhere.",
+//   "The creative adult is the child who survived.",
+//   "Innovation is seeing what everybody has seen and thinking what nobody has thought.",
+//   "An idea that is not dangerous is unworthy of being called an idea at all.",
+//   "The best way to have a good idea is to have lots of ideas.",
+//   "Curiosity is the wick in the candle of learning.",
+//   "Originality is simply a fresh pair of eyes.",
+//   "Simplicity is the ultimate sophistication.",
+//   "Act as if what you do makes a difference. It does,",
+//   "Doubt kills more dreams than failure ever will.",
+//   "Stay away from negative people. They have a problem for every solution.",
+//   "You are stronger than you think.",
+//   "It always seems impossible until it's done.",
+//   "Don't be afraid to give up the good to go for the great.",
+//   "Success doesn't come from what you do occasionally. It comes from what you do consistently.",
+//   "If you get tired, learn to rest, not to quit.",
+//   "You don't have to be great to start, but you have to start to be great.",
+//   "The secret of getting ahead is getting started.",
+//   "Small steps in the right direction can turn out to be the biggest step of your life.",
+//   "Success is what comes after you stop making excuses.",
+//   "Discipline is choosing between what you want now and what you want most.",
+//   "Don't limit your challenges. Challenge your limits.",
+//   "Be so good they can't ignore you.",
+//   "Failure is the condiment that gives success its flavor.",
+//   "You miss 100% of the shots you don't take.",
+//   "Focus on your goal. Don't look in any direction but ahead.",
+//   "Don't stop until you're proud.",
+//   "Strive for progress, not perfection.",
+//   "You were not given this life to be average.",
+//   "A little progress each day adds up to big results.",
+//   "The only way to do great work is to love what you do.",
+//   "Don't count the days, make the days count.",
+//   "Stop doubting yourself, work hard, and make it happen.",
+// ];
+
+// const { width } = Dimensions.get('window');
+
+// const HomeScreen = ({ route, navigation }) => {
+//   const { sid, employeeData, erpUrl  } = route.params;
+//   const [markedDates, setMarkedDates] = useState({});
+//   const [loading, setLoading] = useState(true);
+//   const [anniversaryList, setAnniversaryList] = useState([]);
+//   const [birthdayList, setBirthdayList] = useState([]);
+//   const [quote, setQuote] = useState(DAILY_QUOTES[0]);
+//   const [refreshing, setRefreshing] = useState(false);
+//   const ERP_BASE_URL = erpUrl;
+//   const [showFloatingMenu, setShowFloatingMenu] = useState(false);
+
+//   // --- FAB state ---
+//   const [fabOpen, setFabOpen] = useState(false);
+//   const animation = useRef(new Animated.Value(0)).current; // 0 = closed, 1 = open
+//   const fabItems = [
+//     { name: "Site Survey List", screen: "SiteSurveyList", icon: "ios-list" },
+//     { name: "Lead", screen: "Lead", icon: "ios-people" },
+//     { name: "Timesheet", screen: "Timesheet", icon: "ios-time" },
+//   ];
+
+//   const toggleFab = () => {
+//     setFabOpen(!fabOpen);
+//     Animated.timing(animation, {
+//       toValue: fabOpen ? 0 : 1,
+//       duration: 200,
+//       useNativeDriver: true,
+//     }).start();
+//   };
+
+//   // --- Your existing functions ---
+//   const getTodaysQuote = () => {
+//     const now = new Date();
+//     const start = new Date(now.getFullYear(), 0, 0);
+//     const diff = now - start;
+//     const oneDay = 1000 * 60 * 60 * 24;
+//     const dayOfYear = Math.floor(diff / oneDay);
+//     const quoteIndex = dayOfYear % DAILY_QUOTES.length;
+//     return DAILY_QUOTES[quoteIndex];
+//   };
+
+//   const fetchHolidays = async () => {
+//     try {
+//       const holidayList = employeeData.holiday_list;
+//       if (!holidayList) return {};
+
+//       const response = await fetch(
+//         `${ERP_BASE_URL}${HOLIDAY_LIST_ENDPOINT}/${encodeURIComponent(holidayList)}`,
+//         { headers: { Cookie: `sid=${sid}` } }
+//       );
+
+//       const json = await response.json();
+//       if (!json.data) throw new Error("Invalid holiday list response");
+
+//       const holidayMarks = {};
+//       json.data.holidays.forEach(holiday => {
+//         const date = holiday.holiday_date;
+//         const isWeeklyOff = holiday.weekly_off === 1;
+
+//         holidayMarks[date] = {
+//           selected: true,
+//           selectedColor: isWeeklyOff ? STATUS_COLORS['Weekend'] : STATUS_COLORS['Holiday'],
+//           customStyles: {
+//             container: {
+//               backgroundColor: isWeeklyOff ? STATUS_COLORS['Weekend'] : STATUS_COLORS['Holiday'],
+//               borderRadius: 12,
+//               width: 24,
+//               height: 24,
+//               justifyContent: 'center',
+//               alignItems: 'center'
+//             },
+//             text: {
+//               color: 'white',
+//               fontWeight: 'bold',
+//               fontSize: 12
+//             }
+//           }
+//         };
+//       });
+
+//       return holidayMarks;
+//     } catch (err) {
+//       console.error('Failed to fetch holidays:', err);
+//       return {};
+//     }
+//   };
+
+//   const fetchAttendance = async () => {
+//     try {
+//       const today = new Date().toISOString().slice(0, 10);
+//       const [attendanceResponse, holidayMarks] = await Promise.all([
+//         fetch(
+//           `${ERP_BASE_URL}${ATTENDANCE_ENDPOINT}?fields=["attendance_date","status"]&filters=${encodeURIComponent(JSON.stringify([
+//              ["Attendance", "employee", "=", employeeData.name],
+//              ["Attendance", "attendance_date", "<=", today]
+//            ]))}&limit_page_length=1000`,
+//           { headers: { Cookie: `sid=${sid}` } }
+//         ),
+//         fetchHolidays()
+//       ]);
+
+//       const attendanceJson = await attendanceResponse.json();
+//       if (!attendanceJson.data) throw new Error("Invalid attendance response");
+
+//       const attendanceMarks = {};
+//       attendanceJson.data.forEach(entry => {
+//         const date = entry.attendance_date;
+//         const status = entry.status;
+//         const color = STATUS_COLORS[status] || 'gray';
+
+//         attendanceMarks[date] = {
+//           selected: true,
+//           selectedColor: color,
+//           customStyles: {
+//             container: {
+//               backgroundColor: color,
+//               borderRadius: 12,
+//               width: 24,
+//               height: 24,
+//               justifyContent: 'center',
+//               alignItems: 'center'
+//             },
+//             text: {
+//               color: 'white',
+//               fontWeight: 'bold',
+//               fontSize: 12
+//             }
+//           }
+//         };
+//       });
+
+//       const combinedMarks = { ...holidayMarks, ...attendanceMarks };
+//       const todayDate = new Date().toISOString().split('T')[0];
+
+//       if (!combinedMarks[todayDate]) {
+//         combinedMarks[todayDate] = {
+//           customStyles: {
+//             container: {
+//               borderWidth: 1,
+//               borderColor: '#F44336',
+//               borderRadius: 12,
+//               width: 24,
+//               height: 24,
+//               justifyContent: 'center',
+//               alignItems: 'center'
+//             },
+//             text: {
+//               color: '#F44336',
+//               fontWeight: 'bold',
+//               fontSize: 12
+//             }
+//           }
+//         };
+//       }
+
+//       setMarkedDates(combinedMarks);
+//     } catch (err) {
+//       Alert.alert('Error', 'Failed to fetch attendance: ' + err.message);
+//     }
+//   };
+
+//   const fetchTodayAnniversaries = async () => {
+//     try {
+//       const response = await axios.get(
+//         `${ERP_BASE_URL}$/api/method/birth_and_ani`
+//       );
+
+//       const fullList = response.data?.data || [];
+//       const todayMMDD = moment().format('MM-DD');
+
+//       const filtered = fullList
+//         .map(item => {
+//           const anniversaryDate = moment(item.anniversary);
+//           const mmdd = anniversaryDate.format('MM-DD');
+//           const completedYears = moment().diff(anniversaryDate, 'years');
+
+//           return {
+//             ...item,
+//             completedYears,
+//             isToday: mmdd === todayMMDD,
+//           };
+//         })
+//         .filter(emp => emp.isToday);
+
+//       setAnniversaryList(filtered);
+//     } catch (error) {
+//       console.error('API Error:', error);
+      
+//     }
+//   };
+
+//   const fetchTodayBirthdays = async () => {
+//     try {
+//       const response = await axios.get(
+//         '/api/method/birth_and_ani'
+//       );
+
+//       const fullList = response.data?.data || [];
+//       const todayMMDD = moment().format('MM-DD');
+
+//       const filtered = fullList
+//         .map(item => {
+//           const birthdayDate = moment(item.birth);
+//           const mmdd = birthdayDate.format('MM-DD');
+//           const age = moment().diff(birthdayDate, 'years');
+
+//           return {
+//             ...item,
+//             age,
+//             isToday: mmdd === todayMMDD,
+//           };
+//         })
+//         .filter(emp => emp.isToday);
+
+//       setBirthdayList(filtered);
+//     } catch (error) {
+//       console.error('API Error:', error);
+//     }
+//   };
+
+//   const loadData = async () => {
+//     try {
+//       setLoading(true);
+//       setQuote(getTodaysQuote());
+//       await Promise.all([
+//         fetchAttendance(),
+//         fetchTodayAnniversaries(),
+//         fetchTodayBirthdays()
+//       ]);
+//     } catch (err) {
+//       console.error('Error loading data:', err);
+//     } finally {
+//       setLoading(false);
+//       setRefreshing(false);
+//     }
+//   };
+
+//   const onRefresh = () => {
+//     setRefreshing(true);
+//     loadData();
+//   };
+
+//   useEffect(() => {
+//     loadData();
+//   }, []);
+
+//   const renderStatusLegend = () => {
+//     return (
+//       <View style={styles.legendContainer}>
+//         {Object.entries(STATUS_COLORS).map(([status, color]) => (
+//           <View key={status} style={styles.legendItem}>
+//             <View style={[styles.legendColor, { backgroundColor: color }]} />
+//             <Text style={styles.legendText}>{status}</Text>
+//           </View>
+//         ))}
+//       </View>
+//     );
+//   };
+
+//   const CustomDayComponent = ({ date, state, marking }) => {
+//     const containerStyle = [
+//       styles.dayContainer,
+//       marking?.customStyles?.container,
+//       state === 'today' && !marking && styles.todayContainer
+//     ];
+
+//     const textStyle = [
+//       styles.dayText,
+//       state === 'disabled' && styles.disabledText,
+//       state === 'today' && !marking && styles.todayText,
+//       marking?.customStyles?.text
+//     ];
+
+//     return (
+//       <View style={containerStyle}>
+//         <Text style={textStyle}>{date.day}</Text>
+//       </View>
+//     );
+//   };
+
+//   const renderAnniversaryItem = ({ item, index }) => {
+//     const isCurrentUser = item.emp_name === employeeData.employee_name;
+
+//     return (
+//       <View
+//         key={`anniversary-${index}`}
+//         style={[
+//           styles.anniversaryCard,
+//           isCurrentUser && styles.currentUserAnniversaryCard
+//         ]}
+//       >
+//         <Ionicons name="calendar" size={24} color={isCurrentUser ? "#4CAF50" : "#FF5722"} />
+//         <View style={styles.anniversaryTextContainer}>
+//           <Text style={styles.anniversaryName}>
+//             {item.emp_name} {isCurrentUser && "(You)"}
+//             {item.department && <Text style={styles.departmentText}> • {item.department}</Text>}
+//           </Text>
+//           <Text style={[
+//             styles.anniversaryMessage,
+//             isCurrentUser && styles.currentUserMessage
+//           ]}>
+//             🎉 Today is {item.emp_name}'s {item.completedYears} Year Work Anniversary!
+//           </Text>
+//           <Text style={styles.anniversaryDate}>
+//             Anniversary: {moment(item.anniversary).format('DD MMMM YYYY')}
+//           </Text>
+//         </View>
+//       </View>
+//     );
+//   };
+
+//   const renderBirthdayItem = ({ item }) => {
+//     const isCurrentUser = item.emp_name === employeeData.employee_name;
+
+//     return (
+//       <View style={[
+//         styles.birthdayCard,
+//         isCurrentUser && styles.currentUserBirthdayCard
+//       ]}>
+//         <Ionicons name="gift" size={24} color={isCurrentUser ? "#4CAF50" : "#E91E63"} />
+//         <View style={styles.birthdayTextContainer}>
+//           <Text style={styles.birthdayName}>
+//             {item.emp_name} {isCurrentUser && "(You)"}
+//             {item.department && <Text style={styles.departmentText}> • {item.department}</Text>}
+//           </Text>
+//           <Text style={[
+//             styles.birthdayMessage,
+//             isCurrentUser && styles.currentUserMessage
+//           ]}>
+//             🎂 Wishing {item.emp_name} a happy {item.age} birthday!
+//           </Text>
+//           <Text style={styles.birthdayDate}>
+//             Birthday: {moment(item.birth).format('DD MMMM YYYY')}
+//           </Text>
+//         </View>
+//       </View>
+//     );
+//   };
+
+//   return (
+//     <SafeAreaView style={styles.safeArea}>
+//       <StatusBar backgroundColor="#f8f9fa" barStyle="dark-content" />
+//       <ScrollView
+//         contentContainerStyle={styles.scrollContainer}
+//         refreshControl={
+//           <RefreshControl
+//             refreshing={refreshing}
+//             onRefresh={onRefresh}
+//             colors={['#2196F3']}
+//             tintColor="#2196F3"
+//           />
+//         }
+//       >
+//         {/* Your existing sections (Quote, Applications, View, Calendar, Anniversaries, Birthdays) */}
+//         {/* ... all your existing code remains exactly the same ... */}
+
+//         {/* --- END OF EXISTING CONTENT --- */}
+
+
+//         <View style={styles.quoteContainer}>
+//           <Text style={styles.quoteTitle}>Quote of the Day</Text>
+//           <Text style={styles.quoteText}>"{quote}"</Text>
+//         </View>
+
+//         {/* Applications Section */}
+//         <View style={styles.sectionContainer}>
+//           <Text style={styles.sectionTitle}>Applications</Text>
+
+//           {/* First Row: Attendance | Leave | Salary Slip */}
+//           <View style={styles.applicationsContainer}>
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#E6E6FA' }]}
+//               onPress={() => navigation.navigate('Attendance', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="time-outline" size={26} color="#4CAF50" />
+//               <Text style={styles.applicationText}>Attendance</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#E3F2FD' }]}
+//               onPress={() => navigation.navigate('LeaveRequest', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="document-text-outline" size={26} color="#2196F3" />
+//               <Text style={styles.applicationText}>Leave</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#F8F4E8' }]}
+//               onPress={() => navigation.navigate('SalarySlip', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="cash-outline" size={26} color="#9C27B0" />
+//               <Text style={styles.applicationText}>Salary Slip</Text>
+//             </TouchableOpacity>
+//           </View>
+
+//           {/* Second Row: Outdoor | Timesheet */}
+//           <View style={styles.applicationsContainer}>
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#FFDAB9' }]}
+//               onPress={() => navigation.navigate('OD', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="briefcase-outline" size={26} color="#FF9800" />
+//               <Text style={styles.applicationText}>OutDoor</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#EEEEEE' }]}
+//               onPress={() => navigation.navigate('Timesheet', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="clipboard-outline" size={26} color="#03A9F4" />
+//               <Text style={styles.applicationText}>Timesheet</Text>
+//             </TouchableOpacity>
+
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#ffe4e1' }]}
+//               onPress={() => navigation.navigate('AttendanceRe', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Ionicons name="briefcase-outline" size={26} color="#FF9800" />
+//               <Text style={styles.applicationText}>Att. Request</Text>
+//             </TouchableOpacity>
+//           </View>
+//         </View>
+
+//         {/* View Section */}
+//         <View style={styles.sectionContainer}>
+//           <Text style={styles.sectionTitle}>View</Text>
+//           <View style={styles.applicationsContainer}>
+//             <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#FFF8E1' }]}
+//               onPress={() => navigation.navigate('AttendanceListScreen', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+//               <Image
+//                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3594/3594465.png' }}
+//                 style={{ width: 30, height: 30, tintColor: '#3F51B5' }}
+//               />
+//               <Text style={styles.applicationText}>Att. History</Text>
+//             </TouchableOpacity>
+
+//             {/* <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#E8F5E8' }]}
+//               onPress={() => navigation.navigate('SiteSurveyList', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+             
+
+//               <Image
+//                  //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/684/684908.png' }}
+//                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
+//                  style={{ width: 30, height: 30, tintColor: '#43b53fff' }}
+//                />
+//               <Text style={styles.applicationText}>Expense Claim</Text>
+//             </TouchableOpacity> */}
+
+//             {/* Empty third slot to maintain spacing */}
+//            {/* <View style={[styles.applicationCard, { backgroundColor: 'transparent', elevation: 0 }]} /> */}
+
+
+//             {/* <TouchableOpacity
+//               style={[styles.applicationCard, { backgroundColor: '#E8F5E8' }]}
+//               onPress={() => navigation.navigate('OTFORM', { sid, employeeData, erpUrl })}
+//               activeOpacity={0.7}
+//             >
+             
+
+//               <Image
+//                  //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/684/684908.png' }}
+//                 //source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
+//                 source={{ uri: 'https://cdn-icons-png.flaticon.com/512/2910/2910768.png' }}
+//                  style={{ width: 30, height: 30, tintColor: '#FF9800' }}
+//                />
+//               <Text style={styles.applicationText}>Lead</Text>
+//             </TouchableOpacity> */}
+
+
+//           </View>
+//         </View>
+
+//         {/* Calendar */}
+//         <View style={styles.calendarContainer}>
+//           <Text style={styles.calendarTitle}>Attendance Calendar</Text>
+//           {loading ? (
+//             <ActivityIndicator size="large" color="#000" />
+//           ) : (
+//             <>
+//               <Calendar
+//                 markedDates={markedDates}
+//                 markingType="custom"
+//                 style={styles.calendar}
+//                 theme={{
+//                   calendarBackground: '#FFFFFF',
+//                   textSectionTitleColor: '#000',
+//                   selectedDayBackgroundColor: '#00adf5',
+//                   selectedDayTextColor: '#FFFFFF',
+//                   todayTextColor: '#F44336',
+//                   dayTextColor: '#000',
+//                   textDisabledColor: '#d9d9d9',
+//                   dotColor: '#00adf5',
+//                   selectedDotColor: '#FFFFFF',
+//                   arrowColor: '#2196F3',
+//                   monthTextColor: '#000',
+//                   textMonthFontWeight: 'bold',
+//                   textDayFontSize: 14,
+//                   textMonthFontSize: 16,
+//                   textDayHeaderFontSize: 14,
+//                   'stylesheet.calendar.header': {
+//                     week: {
+//                       marginTop: 5,
+//                       flexDirection: 'row',
+//                       justifyContent: 'space-between'
+//                     }
+//                   }
+//                 }}
+//                 dayComponent={CustomDayComponent}
+//               />
+//               {renderStatusLegend()}
+//             </>
+//           )}
+//         </View>
+
+//         {/* Work Anniversaries Section */}
+//         <View style={styles.sectionContainer}>
+//           <Text style={styles.sectionTitle}>Today's Work Anniversaries</Text>
+//           {loading ? (
+//             <ActivityIndicator size="small" color="#000" />
+//           ) : anniversaryList.length > 0 ? (
+//             <FlatList
+//               data={anniversaryList}
+//               renderItem={renderAnniversaryItem}
+//               keyExtractor={(item, index) => `anniversary-${index}`}
+//               scrollEnabled={false}
+//             />
+//           ) : (
+//             <Text style={styles.noAnniversaries}>No work anniversaries today</Text>
+//           )}
+//         </View>
+
+//         {/* Birthdays Section */}
+//         <View style={styles.sectionContainer}>
+//           <Text style={styles.sectionTitle}>Today's Birthdays</Text>
+//           {loading ? (
+//             <ActivityIndicator size="small" color="#000" />
+//           ) : birthdayList.length > 0 ? (
+//             <FlatList
+//               data={birthdayList}
+//               renderItem={renderBirthdayItem}
+//               keyExtractor={item => item.name}
+//               scrollEnabled={false}
+//             />
+//           ) : (
+//             <Text style={styles.noAnniversaries}>No birthdays today</Text>
+//           )}
+//         </View>
+
+
+
+        
+//       </ScrollView>
+
+     
+
+// <TouchableOpacity
+//   style={styles.floatingButton}
+//   onPress={() => setShowFloatingMenu(!showFloatingMenu)}
+// >
+//   <Ionicons name="add" size={30} color="#fff" />
+// </TouchableOpacity>
+
+// {/* Floating Menu */}
+// {showFloatingMenu && (
+//   <View style={styles.floatingMenu}>
+//     <TouchableOpacity
+//       style={styles.floatingMenuItem}
+//       onPress={() => navigation.navigate('Timesheet', { sid, employeeData, erpUrl })}
+//     >
+//       <Ionicons name="clipboard-outline" size={24} color="#03A9F4" />
+//       <Text style={styles.floatingMenuText}>Timesheet</Text>
+//     </TouchableOpacity>
+
+//     <TouchableOpacity
+//       style={styles.floatingMenuItem}
+//       onPress={() => navigation.navigate('OTFORM', { sid, employeeData, erpUrl })}
+//     >
+//       <Ionicons name="briefcase-outline" size={24} color="#FF9800" />
+//       <Text style={styles.floatingMenuText}>Lead</Text>
+//     </TouchableOpacity>
+
+//     <TouchableOpacity
+//       style={styles.floatingMenuItem}
+//       onPress={() => navigation.navigate('SiteSurveyList', { sid, employeeData, erpUrl })}
+//     >
+//       <Ionicons name="book-outline" size={24} color="#4CAF50" />
+//       <Text style={styles.floatingMenuText}>Site Survey</Text>
+//     </TouchableOpacity>
+//   </View>
+// )}
+
+//     </SafeAreaView>
+//   );
+// };
+
+
+
+
+
+
+
+
+
+
+
+// const styles = StyleSheet.create({
+//   safeArea: { flex: 1, backgroundColor: '#E6F4F1' },
+//   scrollContainer: { padding: 20, paddingBottom: 40 },
+//   quoteContainer: {
+//     backgroundColor: '#fff',
+//     padding: 16,
+//     borderRadius: 10,
+//     borderLeftWidth: 5,
+//     borderLeftColor: '#ffc107',
+//     marginBottom: 20,
+//     elevation: 2,
+//   },
+//   quoteTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 5, color: '#856404' },
+//   quoteText: { fontSize: 14, fontStyle: 'italic', color: '#856404', marginBottom: 5 },
+//   calendarContainer: {
+//     backgroundColor: '#fff',
+//     borderRadius: 10,
+//     padding: 10,
+//     elevation: 2,
+//     marginBottom: 20,
+//   },
+//   calendarTitle: {
+//     fontSize: 16,
+//     fontWeight: 'bold',
+//     marginBottom: 10,
+//     color: '#333',
+//     textAlign: 'center'
+//   },
+//   calendar: {
+//     borderRadius: 10,
+//     marginBottom: 15
+//   },
+//   sectionContainer: {
+//     backgroundColor: '#fff',
+//     borderRadius: 10,
+//     padding: 15,
+//     marginBottom: 20,
+//     elevation: 2,
+//   },
+//   sectionTitle: {
+//     fontSize: 16,
+//     fontWeight: 'bold',
+//     marginBottom: 15,
+//     color: '#333',
+//   },
+//   applicationsContainer: {
+//     flexDirection: 'row',
+//     flexWrap: 'wrap',
+//     justifyContent: 'space-between',
+//     marginBottom: 5,
+//   },
+//   applicationCard: {
+//     backgroundColor: '#fff',
+//     borderRadius: 10,
+//     padding: 15,
+//     // Responsive width, about 30% minus margin for spacing, with minimum and maximum widths
+//     width: '30%',
+//     minWidth: 90,        // Minimum for small devices
+//     maxWidth: 120,       // Maximum for larger screens to keep similar look
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     elevation: 2,
+//     marginVertical: 10,
+//     // Adding a fixed aspect ratio for height proportionality
+//     aspectRatio: 1,
+//   },
+//   applicationText: {
+//     fontSize: 12,
+//     fontWeight: '500',
+//     color: '#333',
+//     marginTop: 8,
+//     textAlign: 'center',
+//   },
+//   legendContainer: {
+//     flexDirection: 'row',
+//     flexWrap: 'wrap',
+//     justifyContent: 'space-around',
+//     marginTop: 10,
+//     paddingHorizontal: 5
+//   },
+//   legendItem: {
+//     flexDirection: 'row',
+//     alignItems: 'center',
+//     marginVertical: 5,
+//     marginHorizontal: 5
+//   },
+//   legendColor: {
+//     width: 15,
+//     height: 15,
+//     borderRadius: 7.5,
+//     marginRight: 5
+//   },
+//   legendText: {
+//     fontSize: 12,
+//     color: '#333'
+//   },
+//   dayContainer: {
+//     width: 32,
+//     height: 32,
+//     justifyContent: 'center',
+//     alignItems: 'center'
+//   },
+//   dayText: {
+//     fontSize: 14,
+//     color: '#000'
+//   },
+//   disabledText: {
+//     color: '#d9d9d9'
+//   },
+//   todayContainer: {
+//     borderWidth: 1,
+//     borderColor: '#F44336',
+//     borderRadius: 12
+//   },
+//   todayText: {
+//     color: '#F44336',
+//     fontWeight: 'bold'
+//   },
+//   anniversaryCard: {
+//     flexDirection: 'row',
+//     backgroundColor: '#FFF8F5',
+//     padding: 12,
+//     borderRadius: 8,
+//     marginVertical: 5,
+//     alignItems: 'center',
+//     borderLeftWidth: 4,
+//     borderLeftColor: '#FF5722',
+//   },
+//   currentUserAnniversaryCard: {
+//     backgroundColor: '#F0FFF0',
+//     borderLeftColor: '#4CAF50',
+//   },
+//   anniversaryTextContainer: {
+//     marginLeft: 10,
+//     flex: 1,
+//   },
+//   anniversaryName: {
+//     fontSize: 16,
+//     fontWeight: '600',
+//     color: '#333',
+//   },
+//   departmentText: {
+//     fontSize: 14,
+//     color: '#666',
+//     fontWeight: 'normal',
+//   },
+//   anniversaryMessage: {
+//     fontSize: 14,
+//     color: '#FF5722',
+//     marginTop: 2,
+//   },
+//   currentUserMessage: {
+//     color: '#4CAF50',
+//   },
+//   anniversaryDate: {
+//     fontSize: 12,
+//     color: '#666',
+//     marginTop: 2,
+//   },
+//   birthdayCard: {
+//     flexDirection: 'row',
+//     backgroundColor: '#FFF0F5',
+//     padding: 12,
+//     borderRadius: 8,
+//     marginVertical: 5,
+//     alignItems: 'center',
+//     borderLeftWidth: 4,
+//     borderLeftColor: '#E91E63',
+//   },
+//   currentUserBirthdayCard: {
+//     backgroundColor: '#F0FFF0',
+//     borderLeftColor: '#4CAF50',
+//   },
+//   birthdayTextContainer: {
+//     marginLeft: 10,
+//     flex: 1,
+//   },
+//   birthdayName: {
+//     fontSize: 16,
+//     fontWeight: '600',
+//     color: '#333',
+//   },
+//   birthdayMessage: {
+//     fontSize: 14,
+//     color: '#E91E63',
+//     marginTop: 2,
+//   },
+//   birthdayDate: {
+//     fontSize: 12,
+//     color: '#666',
+//     marginTop: 2,
+//   },
+//   noAnniversaries: {
+//     textAlign: 'center',
+//     color: '#666',
+//     paddingVertical: 10,
+//   },
+
+
+
+// floatingButton: {
+//   position: 'absolute',
+//   bottom: 30,
+//   right: 30,
+//   width: 60,
+//   height: 60,
+//   borderRadius: 30,
+//   backgroundColor: '#2196F3',
+//   justifyContent: 'center',
+//   alignItems: 'center',
+//   elevation: 5,
+//   zIndex: 100,
+// },
+
+// floatingMenu: {
+//   position: 'absolute',
+//   bottom: 100, // adjust vertical start above the button
+//   right: 30,
+//   backgroundColor: 'transparent',
+//   alignItems: 'flex-end',
+//   zIndex: 100,
+// },
+
+// floatingMenuItem: {
+//   flexDirection: 'row',
+//   alignItems: 'center',
+//   backgroundColor: '#fff',
+//   paddingHorizontal: 12,
+//   paddingVertical: 10,
+//   borderRadius: 8,
+//   marginBottom: 10,
+//   elevation: 3,
+// },
+
+// floatingMenuText: {
+//   marginLeft: 10,
+//   fontSize: 14,
+//   fontWeight: '500',
+//   color: '#333',
+// },
+
+//  });
+
+// export default HomeScreen;

@@ -36,6 +36,29 @@ const SplashScreen = ({ navigation }) => {
   const fullText = 'Welcome to GetmyERP';
 
   useEffect(() => {
+
+
+  
+        // 🔥 AUTO CHECK LAST SCREEN — IMPORTANT
+    // const checkLastScreen = async () => {
+    //   try {
+    //     const lastScreen = await AsyncStorage.getItem("lastScreen");
+    //     const token = await AsyncStorage.getItem("token");
+
+    //     // If app is returning from Recent Apps + Logged In
+    //     if (token && lastScreen === "Employee") {
+    //       navigation.replace("Employee");
+    //       return; // STOP SPLASH → GO DIRECTLY
+    //     }
+    //   } catch (e) {
+    //     console.log("Error loading last screen:", e);
+    //   }
+    // };
+
+    // checkLastScreen(); // Run immediately
+
+
+
     // Logo animation: fade-in and scale-up
     Animated.timing(logoAnim, {
       toValue: 1,
